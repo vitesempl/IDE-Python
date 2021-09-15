@@ -1,5 +1,11 @@
-# IDE-Python
-Package for solving integro-differential equations with discrete delays
+# RK-IDE-Python
+Package for solving integro-differential equations with discrete delays.
+The main method is the explicit 4- and 7-stage Runge-Kutta method.
 
-Google Colaboratory:
-https://drive.google.com/file/d/1bWDo9IL1J4s3pfZqhDIqyJz8cx4urHdx/view?usp=sharing
+Tools and packages
+---------
+
+* Python 3.9
+* Jupyter Notebook / Google Colaboratory
+* numpy
+* matplotlib
