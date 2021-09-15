@@ -61,7 +61,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, step):
             # Kernel of tj_1 is equal to tj of the next step
             Core_tj   = Core_tj_1
     
-    #F = (exp(-delays_int(t0)*t0 + delays_int(t0)) - exp(-t0*t0 + t0))/(t0 - 1)
+    # F = (exp(-delays_int(t0)*t0 + delays_int(t0)) - exp(-t0*t0 + t0))/(t0 - 1)
     #==============================================================#
     # Initialization | First Step | Y | K
     t      = [t0]
