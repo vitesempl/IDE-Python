@@ -1,4 +1,4 @@
-from RK.ide import ide_solve, ide_delay_solve
+from RK.ide import ide_solve
 
 from math import *
 import numpy as np
@@ -54,9 +54,9 @@ def OutputConvOrder(dde=True):
     for steppow in range(nb, n):
         stepsize = 2**(-steppow)
         if dde:
-            sol_test = ide_delay_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+            sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
         else:
-            sol_test = ide_delay_solve(idefun, K, delays_int, history, tspan, stepsize)
+            sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
         err.append(abs(analytic_sol - sol_test[1][-1]))
         nsteps.append(stepsize)
 
@@ -76,6 +76,7 @@ def OutputConvOrder(dde=True):
 
 # Example 1 (only integral)
 tspan = [1.1, 5]
+stepsize = 1e-2
 def idefun(t, y, z, i): return ((t - 1) * exp(t ** 2) * i) / (exp(-1) * y - 1)
 def      K(t, s, y): return [y * exp(-s * t)]
 def   delays_int(t): return [t - 1]  # delays of integrals
@@ -84,13 +85,15 @@ def      history(t): return exp(t)
 def fun(t): return exp(t)
 analytic_sol = fun(tspan[1])
 
-sol = ide_delay_solve(idefun, K, delays_int, history, tspan, 1e-2)
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
 OutputSolution()
 OutputPlot()
 OutputConvOrder(dde=False)
 
+
 # Example 2 (integral+discrete delays)
 tspan = [0, 10]
+stepsize = 1e-2
 def idefun(t, y, z, i): return (1 + exp(-pi / 2)) * y - exp(-pi / 2) * z - 2 * exp(-2 * t) * i
 def         K(t, s, y): return [y * exp(t + s)]
 def       delays(t, y): return [t - pi / 2]  # delays of z
@@ -100,9 +103,48 @@ def         history(t): return cos(t)
 def fun(t): return cos(t)
 analytic_sol = fun(tspan[1])
 
-sol = ide_delay_solve(idefun, K, delays_int, history, tspan, 1e-2, delays=delays)
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
 OutputSolution()
 OutputPlot()
 OutputConvOrder(dde=True)
+
+
+# Example 3 (integral+discrete delays+overlapping)
+tspan = [0, 5]
+stepsize = 1e-2
+def idefun(t, y, z, i): return - y**2 - t * exp(t**2) * z**4 * i
+def         K(t, s, y): return [y * exp(s - s * t)]
+def       delays(t, y): return [t / 2]
+def      delays_int(t): return [t - 1]
+def         history(t): return exp(-t)
+
+def fun(t): return exp(-t)
+analytic_sol = fun(tspan[1])
+
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+OutputSolution()
+OutputPlot()
+OutputConvOrder(dde=True)
+
+
+# Example 4 (2 integrals)
+tspan = [0, 5]
+stepsize = 1e-2
+def idefun(t, y, z, i): return exp(1) - exp(t**2) / (z**2) * (i[0] - exp(-2 * t) * i[1]) * (t - 1)
+def         K(t, s, y): return [y * exp(-s * t),
+                                y * exp(t * (2 - s))]
+def       delays(t, y): return [t-1]
+def      delays_int(t): return [t - 1,
+                                t - 2]
+def         history(t): return exp(t)
+
+def fun(t): return exp(t)
+analytic_sol = fun(tspan[1])
+
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+OutputSolution()
+OutputPlot()
+OutputConvOrder(dde=True)
+
 
 plt.show()
