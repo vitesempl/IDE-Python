@@ -74,77 +74,16 @@ def OutputConvOrder(dde=True):
     fig.tight_layout()
 
 
-# Example 1 (only integral)
-tspan = [1.1, 5]
+# Example (Yukihiko)
+tspan = [0, 25]
 stepsize = 1e-2
-def idefun(t, y, z, i): return ((t - 1) * exp(t ** 2) * i) / (exp(-1) * y - 1)
-def      K(t, s, y): return [y * exp(-s * t)]
-def   delays_int(t): return [t - 1]  # delays of integrals
-def      history(t): return exp(t)
-
-def fun(t): return exp(t)
-analytic_sol = fun(tspan[1])
+def idefun(t, y, z, i): return -15 * i
+def         K(t, s, y): return [sin(y)]
+def      delays_int(t): return [t - 1]
+def         history(t): return 1.5
 
 sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
 OutputSolution()
 OutputPlot()
-OutputConvOrder(dde=False)
-
-
-# Example 2 (integral+discrete delays)
-tspan = [0, 10]
-stepsize = 1e-2
-def idefun(t, y, z, i): return (1 + exp(-pi / 2)) * y - exp(-pi / 2) * z - 2 * exp(-2 * t) * i
-def         K(t, s, y): return [y * exp(t + s)]
-def       delays(t, y): return [t - pi / 2]  # delays of z
-def      delays_int(t): return [t - pi / 2]
-def         history(t): return cos(t)
-
-def fun(t): return cos(t)
-analytic_sol = fun(tspan[1])
-
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
-OutputSolution()
-OutputPlot()
-OutputConvOrder(dde=True)
-
-
-# Example 3 (integral+discrete delays+overlapping)
-tspan = [0, 5]
-stepsize = 1e-2
-def idefun(t, y, z, i): return - y**2 - t * exp(t**2) * z**4 * i
-def         K(t, s, y): return [y * exp(s - s * t)]
-def       delays(t, y): return [t / 2]
-def      delays_int(t): return [t - 1]
-def         history(t): return exp(-t)
-
-def fun(t): return exp(-t)
-analytic_sol = fun(tspan[1])
-
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
-OutputSolution()
-OutputPlot()
-OutputConvOrder(dde=True)
-
-
-# Example 4 (2 integrals)
-tspan = [0, 5]
-stepsize = 1e-2
-def idefun(t, y, z, i): return exp(1) - exp(t**2) / (z**2) * (i[0] - exp(-2 * t) * i[1]) * (t - 1)
-def         K(t, s, y): return [y * exp(-s * t),
-                                y * exp(t * (2 - s))]
-def       delays(t, y): return [t-1]
-def      delays_int(t): return [t - 1,
-                                t - 2]
-def         history(t): return exp(t)
-
-def fun(t): return exp(t)
-analytic_sol = fun(tspan[1])
-
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
-OutputSolution()
-OutputPlot()
-OutputConvOrder(dde=True)
-
 
 plt.show()
