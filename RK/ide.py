@@ -231,7 +231,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, step):
     return t, y
 
 #=============================================================================================================
-def ide_delay_solve(idefun, delays, Core, delays_int, history, tspan, step):
+def ide_delay_solve(idefun, Core, delays_int, history, tspan, step, delays=False):
     #  idefun - right-hand side function
     #    Core - Kernel (integrated function)
     #  delays - delays function (lower integration limit)
@@ -244,9 +244,12 @@ def ide_delay_solve(idefun, delays, Core, delays_int, history, tspan, step):
     neq  = np.size(y0) # number of equations
     htry = step        # constant mesh step-size
     h    = htry        # current step-size (for the last step)
-    
-    d_t0 = delays(t0, y0)
-    nz   = np.size(d_t0)
+
+    if delays is not False:
+        d_t0 = delays(t0, y0)
+        nz   = np.size(d_t0)
+    else:
+        nz   = 1
     #==============================================================#
     # VIDE Runge-Kutta Tavernini
     A = np.array([[0, 1, 3/8, 1/2,  5/24,  1/6],
@@ -305,8 +308,9 @@ def ide_delay_solve(idefun, delays, Core, delays_int, history, tspan, step):
     k      = 0  # step
     
     z = np.zeros((neq,nz))
-    for kz in range(nz):
-        z[:,kz] = history(d_t0[kz])
+    if delays is not False:
+        for kz in range(nz):
+            z[:,kz] = history(d_t0[kz])
     
     Y        = np.zeros((neq,s))
     K        = np.zeros((neq,s,1))
@@ -442,36 +446,37 @@ def ide_delay_solve(idefun, delays, Core, delays_int, history, tspan, step):
             Z[:,i]         = h * np.dot(Core_di[:,0:i],A[0:i,i])
             #======================================================#
             #Finding delays Z
-            d_ti = delays(ti,Y[:,i])
-            
-            for kz in range(nz):
-                if d_ti[kz] < t0:
-                    z[:,kz] = history(d_ti[kz])
-                elif ti < d_ti[kz]:
-                    # wrong overlapping
-                    raise NameError("Delays went ahead")
-                elif t[k] - d_ti[kz] <= 0:
-                    # overlapping
-                    teta = (d_ti[kz] - t[k]) / h
-                    z[:,kz] = y[:,k] + h * np.dot(K[:,0:i,k],MatrixA(teta,i))
-                else:
-                    # find t
-                    #============Binary search algorithm===========#
-                    tcur = d_ti[kz]
-                    iz   = 0
-                    jz   = len(t)-1
-                    nstep = int(jz/2)
+            if delays is not False:
+                d_ti = delays(ti,Y[:,i])
 
-                    while (t[nstep+1] < tcur or t[nstep] > tcur) and iz < jz:
-                        if tcur > t[nstep]:
-                            iz = nstep + 1
-                        else:
-                            jz = nstep - 1
-                        nstep = int((iz+jz)/2)
+                for kz in range(nz):
+                    if d_ti[kz] < t0:
+                        z[:,kz] = history(d_ti[kz])
+                    elif ti < d_ti[kz]:
+                        # wrong overlapping
+                        raise NameError("Delays went ahead")
+                    elif t[k] - d_ti[kz] <= 0:
+                        # overlapping
+                        teta = (d_ti[kz] - t[k]) / h
+                        z[:,kz] = y[:,k] + h * np.dot(K[:,0:i,k],MatrixA(teta,i))
+                    else:
+                        # find t
+                        #============Binary search algorithm===========#
+                        tcur = d_ti[kz]
+                        iz   = 0
+                        jz   = len(t)-1
+                        nstep = int(jz/2)
 
-                    # find z
-                    theta = (tcur - t[nstep])/htry
-                    z[:,kz] = y[:,nstep] + htry * np.dot(K[:,:,nstep], b4(theta))
+                        while (t[nstep+1] < tcur or t[nstep] > tcur) and iz < jz:
+                            if tcur > t[nstep]:
+                                iz = nstep + 1
+                            else:
+                                jz = nstep - 1
+                            nstep = int((iz+jz)/2)
+
+                        # find z
+                        theta = (tcur - t[nstep])/htry
+                        z[:,kz] = y[:,nstep] + htry * np.dot(K[:,:,nstep], b4(theta))
                 
             # K2-S
             K[:, i, k] = idefun(ti, Y[:,i], z, F+Z[:,i])
