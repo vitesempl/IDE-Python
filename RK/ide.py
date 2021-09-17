@@ -308,6 +308,16 @@ def b4(a):
     return x
 
 def MatrixA(a, step):
+    MatrixA_switch = {
+        0: 0,
+        1: a,
+        2: [a * (1 - a * 1/2), 1/2 * a * a],
+        3: [a * (1 - a * 1/2), 1/2 * a * a, 0],
+        4: [a * (1 + a * (-3/2 + a * 2/3)), 0, a**2 * (2 - a * 4/3), a**2 * (-1/2 + a * 2/3)],
+        5: [a * (1 + a * (-3/2 + a * 2/3)), 0, a**2 * (1 - a * 4/3), a**2 * (-1/2 + a * 2/3), a**2]
+    }
+    '''
+    sqrA = a**2
     if step == 0:
         A = 0
     elif step == 1:
@@ -327,3 +337,5 @@ def MatrixA(a, step):
                 sqrA * (1 - a * 4/3), 
                 sqrA * (-1/2 + a * 2/3), sqrA]
     return A
+    '''
+    return MatrixA_switch[step]
