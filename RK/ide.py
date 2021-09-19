@@ -8,7 +8,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
     #    History - history function
     #      tspan - solution interval
     #   stepsize - step of numerical Runge-Kutta method
-    #     delays - (optional) dicrete delays function (if idefun has 'z')
+    #     delays - (optional) discrete delays function (if idefun has 'z')
     t0 = tspan[0]      # t begin
     tf = tspan[1]      # t end
     y0 = history(t0)   # initial solution
