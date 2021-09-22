@@ -13,20 +13,6 @@ def OutputSolution():
         for i in range(nz):
             print("y", i + 1, "(", tspan[1], ") = ", sol[1][i, -1], sep='')
 
-# Test 1
-tspan = [1.1, 5]
-stepsize = 1e-2
-def idefun(t, y, z, i): return ((t - 1) * exp(t**2) * i) / (exp(-1) * y - 1)
-def         K(t, s, y): return [y * exp(-s * t)]
-def      delays_int(t): return [t - 1]
-def         history(t): return exp(t)
-
-t = time.time()
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
-elapsed = time.time() - t
-
-OutputSolution()
-print("Elapsed time:", elapsed, "seconds")
 
 # Test 2
 tspan = [0, 5]
@@ -38,7 +24,7 @@ def      delays_int(t): return [t - 1]
 def         history(t): return exp(-t)
 
 t = time.time()
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays, overlapping=True)
 elapsed = time.time() - t
 
 OutputSolution()
@@ -56,7 +42,7 @@ def      delays_int(t): return [t - 1,
 def         history(t): return exp(t)
 
 t = time.time()
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays, overlapping=True)
 elapsed = time.time() - t
 
 OutputSolution()
@@ -73,30 +59,8 @@ def      delays_int(t): return [t / 2 - 1]
 def         history(t): return exp(-t)
 
 t = time.time()
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays, overlapping=True)
 elapsed = time.time() - t
 
 OutputSolution()
 print("Elapsed time:", elapsed, "seconds")
-
-# Test 5
-tspan = [0, 10]
-stepsize = 1e-2
-def idefun(t, y, z, i): return [-2.5 * i[0],
-                                -15 * i[1],
-                                0.001 * exp(t)]
-def         K(t, s, y): return [sin(y[0]),
-                                sin(y[1])]
-def      delays_int(t): return [t - 1,
-                                t - 1]
-def         history(t): return [1.5,
-                                1.5,
-                                0.001 * exp(t)]
-
-t = time.time()
-sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
-elapsed = time.time() - t
-
-OutputSolution()
-print("Elapsed time:", elapsed, "seconds")
-

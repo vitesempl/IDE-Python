@@ -29,7 +29,7 @@ def OutputPlot():
     plt.grid()
 
 
-def OutputConvOrder(dde=True):
+def OutputConvOrder(dde=False, overlapping=False):
     nz = np.size(history(tspan[0]))
 
     plt.rcParams['figure.figsize'] = [10, 5]
@@ -46,15 +46,18 @@ def OutputConvOrder(dde=True):
     axs[0].set_xlabel("TIME", fontsize=14)
     axs[0].set_ylabel("SOLUTION", fontsize=14)
 
-    nb = 1
-    n = 7
+    nb = 2
+    n = 8
     err = []
     nsteps = []
 
     for steppow in range(nb, n):
         stepsize = 2**(-steppow)
         if dde:
-            sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
+            if overlapping:
+                sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays, overlapping=True)
+            else:
+                sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
         else:
             sol_test = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
         err.append(abs(analytic_sol - sol_test[1][-1]))
@@ -83,12 +86,16 @@ def       delays(t, y): return [t - pi / 2]  # delays of z
 def      delays_int(t): return [t - pi / 2]
 def         history(t): return cos(t)
 
-def fun(t): return cos(t)
-analytic_sol = fun(tspan[1])
-
 sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays=delays)
 OutputSolution()
 OutputPlot()
+
+# Check convergence order
+def fun(t): return cos(t)
+analytic_sol = fun(tspan[1])
+
+# dde=true - if equation is DDE (with dicrete delays 'z')
+# overlapping=true - if equation has overlapping in discrete delays
 OutputConvOrder(dde=True)
 
 plt.show()
