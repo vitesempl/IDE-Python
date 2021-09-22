@@ -1,7 +1,7 @@
 import numpy as np
 
 # ============================================================================================================= #
-def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
+def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False, overlapping=False):
     #     idefun - right-hand side function (t - time, y - solution, z - dicrete delays, i - integral)
     #       Core - Kernel (integrated function)
     # delays_int - distributed delays function (lower integration limit)
@@ -22,18 +22,38 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
     else:
         nz = 1
     # ============================================================== #
-    # VIDE Runge-Kutta Tavernini
-    A = np.array([[0, 1, 3/8, 1/2,  5/24,  1/6],
-                  [0, 0, 1/8, 1/2,     0,    0],
-                  [0, 0,   0,   0,   1/3, -1/3], 
-                  [0, 0,   0,   0, -1/24,  1/6],
-                  [0, 0,   0,   0,     0,    1],
-                  [0, 0,   0,   0,     0,    0]])
-    
-    b = np.array([1/6, 0, 0, 0, 2/3, 1/6])
+
+
+    if overlapping:
+        # VIDE Runge-Kutta Tavernini
+        A = np.array([[0, 1, 3/8, 1/2,  5/24,  1/6],
+                      [0, 0, 1/8, 1/2,     0,    0],
+                      [0, 0,   0,   0,   1/3, -1/3],
+                      [0, 0,   0,   0, -1/24,  1/6],
+                      [0, 0,   0,   0,     0,    1],
+                      [0, 0,   0,   0,     0,    0]])
+
+        b = np.array([1/6, 0, 0, 0, 2/3, 1/6])
+        c = np.array([0, 1, 1/2, 1, 1/2, 1])
+        d = np.array([1/2, 1/2, 1/2, 1/2, 1])
+        b4 = b4_Tav
+        F_stages_calc = [1, 2]
+        method = "Tav"
+    else:
+        # VIDE Runge-Kutta 4
+        A = np.array([[0, 1/2,   0, 0],
+                      [0,   0, 1/2, 0],
+                      [0,   0,   0, 1],
+                      [0,   0,   0, 0]])
+
+        b = np.array([1/6, 1/3, 1/3, 1/6])
+        c = np.array([0, 1/2, 1/2, 1])
+        d = np.array([1/2, 1/2, 1])
+        b4 = b4_RK4
+        F_stages_calc = [1, 3]
+        method = "RK4"
+
     s = len(b)
-    c = np.array([0, 1, 1/2, 1, 1/2, 1])
-    d = np.array([1/2, 1/2, 1/2, 1/2, 1])
     # ============================================================== #
     nint = np.size(delays_int(t0))
     # Calculate integral (F) in history
@@ -101,7 +121,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
             ti = t[k] + c[i] * h
             # ============================================================== #
             # Calculate integral (F)
-            if i == 1 or i == 2:
+            if i in F_stages_calc:  # c[3] = c[2] so the same F value is used
                 F = np.zeros(nint)
                 
                 dtk_begin = delays_int(ti)  # lower integration limit
@@ -193,14 +213,23 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
                             # Kernel of tj_1 is equal to tj of the next step 
                             Core_tj = Core_tj_1
                         # ============================================================== #
-                    if i == 1:
-                        F_1 = F
+                    if method == "Tav":
+                        if i == 1:
+                            F_1 = F
+                        else:
+                            F_half = F
                     else:
-                        F_half = F
-            if i == 3 or i == 5:
-                F = F_1
-            elif i == 4:
-                F = F_half    
+                        if i == 1:
+                            F_half = F
+            if method == "Tav":
+                if i == 3 or i == 5:
+                    F = F_1
+                elif i == 4:
+                    F = F_half
+            else:
+                if i == 2:
+                    F = F_half
+
             # F = (exp(-t[k]*ti + t[k]) - exp(-delays_int(ti)*ti + delays_int(ti)))/(1 - ti)
             # ============================================================== #
             # Y2-S
@@ -222,8 +251,11 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
                         raise NameError("Delays went ahead")
                     elif t[k] - d_ti[kz] <= 0:
                         # overlapping
-                        teta = (d_ti[kz] - t[k]) / h
-                        z[:, kz] = y[:, k] + h * np.dot(K[:, 0:i, k], MatrixA(teta, i))
+                        if method == "Tav":
+                            teta = (d_ti[kz] - t[k]) / h
+                            z[:, kz] = y[:, k] + h * np.dot(K[:, 0:i, k], MatrixA(teta, i))
+                        else:
+                            raise NameError("Overlapping. Choose method Tavernini with key 'overlapping=true'")
                     else:
                         # find t
                         # ============Binary search algorithm=========== #
@@ -282,7 +314,7 @@ def int_simpson(h, y_begin, y_end, y_half):
     return h/6 * (y_begin + 4 * y_half + y_end)
 
 
-def b4(a):
+def b4_Tav(a):
     x = np.zeros(6)
     sqrA = a ** 2
     x[0] = a * (1 + a * (-3/2 + a * 2/3))
@@ -291,6 +323,16 @@ def b4(a):
     x[3] = 0
     x[4] = sqrA * (2 + a * -4/3)
     x[5] = sqrA * (-1/2 + a * 2/3)
+    return x
+
+
+def b4_RK4(a):
+    x = np.zeros(4)
+    sqrA = a ** 2
+    x[0] = a * (1 + a * (-3/2 + a * 2/3))
+    x[1] = sqrA * (1 + a * -2/3)
+    x[2] = sqrA * (1 + a * -2/3)
+    x[3] = sqrA * (-1/2 + a * 2/3)
     return x
 
 
