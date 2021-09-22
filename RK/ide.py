@@ -145,8 +145,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
                         # Add integral in the solution to t(k)
                         for j in range(1, k + 1):
                             tj_half = t[j] - htry / 2
-                            y_half = ntrp3h(tj_half, t[j-1], y[:, j-1], K[:, 0, j-1], t[j], y[:, j], K[:, 0, j])
-
+                            y_half = y[:, j - 1] + htry * np.dot(K[:, :, j - 1], b4(1/2))
                             # Calculate Kernel values at the nodes
                             Core_tj_h = Core(ti, tj_half, y_half)
                             Core_tj_1 = Core(ti, t[j], y[:, j])
@@ -167,10 +166,8 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
                         # Add piece from dtk_begin to the mesh point in the solution
                         tj_half = (t[step+1] + dtk_begin[ij]) / 2
 
-                        y_begin = ntrp3h(dtk_begin[ij], t[step], y[:, step], K[:, 0, step],
-                                                        t[step+1], y[:, step+1], K[:, 0, step+1])
-                        y_begin_h = ntrp3h(tj_half, t[step], y[:, step], K[:, 0, step],
-                                                    t[step+1], y[:, step+1], K[:, 0, step+1])
+                        y_begin = y[:, step] + htry * np.dot(K[:, :, step], b4((dtk_begin[ij] - t[step]) / htry))
+                        y_begin_h = y[:, step] + htry * np.dot(K[:, :, step], b4((tj_half - t[step]) / htry))
 
                         # Calculate Kernel values at the nodes
                         Core_tj = Core(ti, dtk_begin[ij], y_begin)
@@ -184,8 +181,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
                         Core_tj = Core_tj_1
                         for j in range(step + 2, k + 1):
                             tj_half = t[j] - htry / 2
-                            y_half = ntrp3h(tj_half, t[j-1], y[:, j-1], K[:, 0, j-1],
-                                                        t[j], y[:, j], K[:, 0, j])
+                            y_half = y[:, j - 1] + htry * np.dot(K[:, :, j - 1], b4(1/2))
 
                             # Calculate Kernel values at the nodes
                             Core_tj_h = Core(ti, tj_half, y_half)
@@ -277,6 +273,7 @@ def ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=False):
     return t, y
 # ============================================================================================================= #
 
+
 def int_simpson(h, y_begin, y_end, y_half):
     # Simpson's method
     y_begin = np.array(y_begin)
@@ -284,17 +281,6 @@ def int_simpson(h, y_begin, y_end, y_half):
     y_half = np.array(y_half)
     return h/6 * (y_begin + 4 * y_half + y_end)
 
-def ntrp3h(tint, t, y, yp, tnew, ynew, ypnew):
-    # Hermite extrapolation
-    h = tnew - t
-    s = (tint - t) / h
-    s2 = s * s
-    s3 = s * s2
-    slope = (ynew - y) / h
-    c = 3 * slope - 2 * yp - ypnew
-    d = yp + ypnew - 2 * slope
-    
-    return y + (h * d * s3 + h * c * s2 + h * yp * s)
 
 def b4(a):
     x = np.zeros(6)
@@ -307,6 +293,7 @@ def b4(a):
     x[5] = sqrA * (-1/2 + a * 2/3)
     return x
 
+
 def MatrixA(a, step):
     MatrixA_switch = {
         0: 0,
@@ -316,26 +303,4 @@ def MatrixA(a, step):
         4: [a * (1 + a * (-3/2 + a * 2/3)), 0, a**2 * (2 - a * 4/3), a**2 * (-1/2 + a * 2/3)],
         5: [a * (1 + a * (-3/2 + a * 2/3)), 0, a**2 * (1 - a * 4/3), a**2 * (-1/2 + a * 2/3), a**2]
     }
-    '''
-    sqrA = a**2
-    if step == 0:
-        A = 0
-    elif step == 1:
-        A = a
-    elif step == 2:
-        A = [a * (1 - a * 1/2), 1/2 * a * a]
-    elif step == 3:
-        A = [a * (1 - a * 1/2), 1/2 * a * a, 0]
-    elif step == 4:
-        sqrA = a*a
-        A = [a * (1 + a * (-3/2 + a * 2/3)), 0, 
-                sqrA * (2 - a * 4/3), 
-                sqrA * (-1/2 + a * 2/3)]
-    elif step == 5:
-        sqrA = a*a
-        A = [a * (1 + a * (-3/2 + a * 2/3)), 0,
-                sqrA * (1 - a * 4/3), 
-                sqrA * (-1/2 + a * 2/3), sqrA]
-    return A
-    '''
     return MatrixA_switch[step]
